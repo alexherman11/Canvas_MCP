@@ -104,6 +104,17 @@ app.post('/mcp', async (req, res) => {
     return;
   }
 
+  // Stale session ID — tell the client to re-initialize instead of silently
+  // creating a new transport that will reject non-initialize requests with 400.
+  if (sessionId) {
+    res.status(404).json({
+      jsonrpc: '2.0',
+      error: { code: -32000, message: 'Session not found. The server may have restarted — please reconnect.' },
+      id: null,
+    });
+    return;
+  }
+
   // Capture credential ID from the initial request for session binding
   const credentialId = req.headers['x-credential-id'];
 
