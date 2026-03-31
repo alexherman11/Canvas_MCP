@@ -1,0 +1,18 @@
+{
+  "name": "canvas-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Canvas LMS API integration with Claude Desktop",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test.js"
+  },
+  "keywords": ["mcp", "canvas", "lms"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.3.1"
+  }
+}

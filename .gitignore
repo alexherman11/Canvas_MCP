@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.log
+
+# Editor / OS artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Desktop config (contains API tokens)
+claude_desktop_config.json
