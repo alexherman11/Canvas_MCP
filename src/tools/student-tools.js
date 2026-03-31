@@ -1,34 +1,11 @@
 import { z } from 'zod';
-import * as canvas from './canvas-api.js';
-import { resolveCredentials } from './credential-resolver.js';
-import { encrypt } from './crypto.js';
-import * as db from './db.js';
+import * as canvas from '../canvas-api.js';
+import { encrypt } from '../crypto.js';
+import * as db from '../db.js';
+import { text, error, getCanvasContext } from './helpers.js';
 
 // ---------------------------------------------------------------------------
-// Helper to return a text content block
-// ---------------------------------------------------------------------------
-function text(obj) {
-  return { content: [{ type: 'text', text: JSON.stringify(obj, null, 2) }] };
-}
-
-function error(msg) {
-  return { content: [{ type: 'text', text: msg }], isError: true };
-}
-
-// ---------------------------------------------------------------------------
-// Per-request credential resolution
-// ---------------------------------------------------------------------------
-
-/**
- * Build a Canvas API context from the MCP request.
- * Checks: headers → stored credentials (DB) → environment variables.
- */
-async function getCanvasContext(extra) {
-  return resolveCredentials(extra);
-}
-
-// ---------------------------------------------------------------------------
-// Tool definitions: each export is { name, config, handler }
+// Tool definitions: student-facing + configuration tools
 // ---------------------------------------------------------------------------
 
 export const configure = {
@@ -390,8 +367,7 @@ export const sendMessage = {
   },
 };
 
-// All tools as an array for easy registration
-export const allTools = [
+export const studentTools = [
   configure,
   authStatus,
   getCourses,

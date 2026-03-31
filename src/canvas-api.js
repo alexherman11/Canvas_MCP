@@ -132,3 +132,26 @@ export async function put(ctx, path, body = {}) {
   });
   return res.json();
 }
+
+/**
+ * PATCH JSON to Canvas. Handles 204 No Content responses gracefully.
+ */
+export async function patch(ctx, path, body = {}) {
+  const url = `${ctx.apiBase}${path}`;
+  const res = await request(ctx.apiToken, url, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
+}
+
+/**
+ * DELETE a Canvas resource. Handles 204 No Content responses gracefully.
+ */
+export async function del(ctx, path) {
+  const url = `${ctx.apiBase}${path}`;
+  const res = await request(ctx.apiToken, url, { method: 'DELETE' });
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
+}

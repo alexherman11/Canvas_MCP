@@ -18,7 +18,7 @@ import cors from 'cors';
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { allTools } from './tools.js';
+import { allTools } from './tools/index.js';
 import { handleConnect, handleCallback, handleConfigure, handleAuthStatus } from './auth.js';
 import * as db from './db.js';
 
