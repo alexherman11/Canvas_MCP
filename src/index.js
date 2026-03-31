@@ -11,9 +11,9 @@ const server = new McpServer({
 
 // Register every tool from tools.js
 for (const tool of allTools) {
-  server.tool(tool.name, tool.config.description, tool.config.inputSchema, async (args) => {
+  server.tool(tool.name, tool.config.description, tool.config.inputSchema, async (args, extra) => {
     try {
-      return await tool.handler(args);
+      return await tool.handler(args, extra);
     } catch (err) {
       return {
         content: [{ type: 'text', text: `Error: ${err.message}` }],

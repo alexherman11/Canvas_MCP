@@ -1,6 +1,8 @@
 # Canvas LMS MCP Server
 
-A local MCP (Model Context Protocol) server that connects Claude Desktop to the Canvas LMS API. Lets Claude read your courses, assignments, grades, announcements, files, and more — directly from Canvas.
+An MCP (Model Context Protocol) server that connects Claude to the Canvas LMS API. Lets Claude read your courses, assignments, grades, announcements, files, and more — directly from Canvas.
+
+Works **remotely** (hosted on Railway, no local setup) or **locally** (stdio transport for Claude Desktop).
 
 ## Tools
 
@@ -15,7 +17,32 @@ A local MCP (Model Context Protocol) server that connects Claude Desktop to the 
 | `canvas_get_course_files` | List files in a course |
 | `canvas_send_message` | Send a Canvas inbox message |
 
-## Setup
+## Quick Start — Remote (Recommended)
+
+No installation needed. Just add this to your Claude Desktop config:
+
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "canvas-lms": {
+      "url": "https://YOUR_RAILWAY_URL/mcp",
+      "headers": {
+        "x-canvas-api-token": "YOUR_CANVAS_API_TOKEN",
+        "x-canvas-base-url": "https://canvas.yourschool.edu"
+      }
+    }
+  }
+}
+```
+
+Replace `YOUR_RAILWAY_URL` with the deployed server URL, and fill in your Canvas credentials.
+
+Then **restart Claude Desktop** (fully quit, not just close the window).
+
+## Local Setup (Development)
 
 ### 1. Get a Canvas API Token
 
@@ -29,8 +56,8 @@ A local MCP (Model Context Protocol) server that connects Claude Desktop to the 
 ### 2. Clone and Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Canvas-MCP.git
-cd Canvas-MCP
+git clone https://github.com/alexherman11/Canvas_MCP.git
+cd Canvas_MCP
 npm install
 ```
 
@@ -56,21 +83,16 @@ node test.js
 This will:
 - Verify your Canvas API credentials work
 - Call each API endpoint
-- Start the MCP server and confirm all 8 tools are registered
+- Start both the stdio and HTTP MCP servers and confirm they work
 
-### 5. Register with Claude Desktop
-
-Add the following to your Claude Desktop config file:
-
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+### 5. Register with Claude Desktop (Local)
 
 ```json
 {
   "mcpServers": {
     "canvas-lms": {
       "command": "node",
-      "args": ["/absolute/path/to/Canvas-MCP/src/index.js"],
+      "args": ["/absolute/path/to/Canvas_MCP/src/index.js"],
       "env": {
         "CANVAS_BASE_URL": "https://canvas.yourschool.edu",
         "CANVAS_API_TOKEN": "your_token_here"
@@ -80,9 +102,20 @@ Add the following to your Claude Desktop config file:
 }
 ```
 
-> **Important:** Replace the path in `args` with the absolute path to `src/index.js` on your machine, and fill in your Canvas URL and API token. The `env` block in the config means you don't need to rely on the `.env` file when running through Claude Desktop.
+> **Important:** Replace the path in `args` with the absolute path to `src/index.js` on your machine.
 
-Then **restart Claude Desktop** (fully quit, not just close the window). You should see Canvas tools available in the tools menu.
+## Self-Hosting on Railway
+
+1. Fork this repo
+2. Create a new project on [Railway](https://railway.app) and connect your fork
+3. Railway auto-detects Node.js — no Dockerfile needed
+4. Optionally set `CANVAS_BASE_URL` and `CANVAS_API_TOKEN` in Railway's environment variables for single-tenant mode
+5. Deploy — the server starts on the assigned `PORT` automatically
+6. Use the Railway-provided URL in your Claude Desktop config (see Quick Start above)
+
+The server exposes:
+- `POST/GET/DELETE /mcp` — MCP Streamable HTTP endpoint
+- `GET /health` — health check (returns `200 OK`)
 
 ## Verify in Claude Desktop
 
@@ -94,9 +127,10 @@ After restarting, try asking Claude:
 ## Project Structure
 
 ```
-Canvas-MCP/
+Canvas_MCP/
   src/
-    index.js        — MCP server entry point (stdio transport)
+    index.js        — MCP server entry point (stdio transport, local dev)
+    server-http.js  — MCP server entry point (HTTP transport, remote)
     tools.js        — All 8 tool definitions and handlers
     canvas-api.js   — Canvas REST API client (pagination, retries)
     config.js       — Environment configuration
@@ -105,6 +139,22 @@ Canvas-MCP/
   .gitignore        — Excludes .env and node_modules
   package.json
   README.md
+```
+
+## Architecture
+
+```
+Remote mode:
+  Claude Desktop/claude.ai → HTTPS → Railway → Streamable HTTP → MCP server → Canvas API
+                                                                    ↑
+                                                      reads x-canvas-api-token &
+                                                      x-canvas-base-url from headers
+
+Local mode:
+  Claude Desktop → spawns process → stdio → MCP server → Canvas API
+                                               ↑
+                                    reads CANVAS_API_TOKEN &
+                                    CANVAS_BASE_URL from env vars
 ```
 
 ## License

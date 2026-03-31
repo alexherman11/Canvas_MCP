@@ -13,6 +13,37 @@ function error(msg) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-request credential resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a Canvas API context from the MCP request.
+ * In remote (HTTP) mode, credentials come from request headers.
+ * In local (stdio) mode, they fall back to environment variables.
+ */
+function getCanvasContext(extra) {
+  const headers = extra?.requestInfo?.headers;
+  const headerToken = headers?.['x-canvas-api-token'];
+  const headerBaseUrl = headers?.['x-canvas-base-url'];
+
+  if (headerToken && headerBaseUrl) {
+    const baseUrl = String(headerBaseUrl).replace(/\/+$/, '');
+    return { apiBase: `${baseUrl}/api/v1`, apiToken: String(headerToken) };
+  }
+
+  // Fall back to env vars (stdio / single-tenant mode)
+  const apiToken = process.env.CANVAS_API_TOKEN;
+  const baseUrl = process.env.CANVAS_BASE_URL?.replace(/\/+$/, '');
+  if (!apiToken || !baseUrl) {
+    throw new Error(
+      'No Canvas credentials found. Provide x-canvas-api-token and x-canvas-base-url headers, ' +
+      'or set CANVAS_BASE_URL and CANVAS_API_TOKEN environment variables.'
+    );
+  }
+  return { apiBase: `${baseUrl}/api/v1`, apiToken };
+}
+
+// ---------------------------------------------------------------------------
 // Tool definitions: each export is { name, config, handler }
 // ---------------------------------------------------------------------------
 
@@ -23,8 +54,9 @@ export const getCourses = {
       'List all active courses for the authenticated Canvas user. Returns course id, name, code, and term.',
     inputSchema: {},
   },
-  async handler() {
-    const courses = await canvas.getAll('/courses', {
+  async handler(_args, extra) {
+    const ctx = getCanvasContext(extra);
+    const courses = await canvas.getAll(ctx, '/courses', {
       enrollment_state: 'active',
       include: 'term',
       state: 'available',
@@ -54,10 +86,12 @@ export const getAssignments = {
         .describe('Include current user submission info'),
     },
   },
-  async handler({ course_id, include_submission }) {
+  async handler({ course_id, include_submission }, extra) {
+    const ctx = getCanvasContext(extra);
     const params = {};
     if (include_submission) params.include = 'submission';
     const assignments = await canvas.getAll(
+      ctx,
       `/courses/${course_id}/assignments`,
       params,
     );
@@ -86,9 +120,10 @@ export const getGrades = {
       course_id: z.number().describe('The Canvas course ID'),
     },
   },
-  async handler({ course_id }) {
-    // Enrollments endpoint gives computed grades
+  async handler({ course_id }, extra) {
+    const ctx = getCanvasContext(extra);
     const enrollments = await canvas.getAll(
+      ctx,
       `/courses/${course_id}/enrollments`,
       { user_id: 'self', include: 'current_points' },
     );
@@ -120,9 +155,9 @@ export const getAnnouncements = {
         .describe('Max number of announcements to return (default 10)'),
     },
   },
-  async handler({ course_id, limit }) {
-    // Canvas announcements are discussion_topics with only_announcements=true
-    const announcements = await canvas.getAll('/announcements', {
+  async handler({ course_id, limit }, extra) {
+    const ctx = getCanvasContext(extra);
+    const announcements = await canvas.getAll(ctx, '/announcements', {
       'context_codes[]': `course_${course_id}`,
       per_page: limit,
     });
@@ -150,12 +185,12 @@ export const getUpcomingDue = {
         .describe('Number of days to look ahead (default 7)'),
     },
   },
-  async handler({ days }) {
+  async handler({ days }, extra) {
+    const ctx = getCanvasContext(extra);
     const now = new Date();
     const cutoff = new Date(now.getTime() + days * 86400000);
 
-    // Get upcoming items from the planner API
-    const items = await canvas.getAll('/planner/items', {
+    const items = await canvas.getAll(ctx, '/planner/items', {
       start_date: now.toISOString(),
       end_date: cutoff.toISOString(),
       per_page: 100,
@@ -185,8 +220,10 @@ export const submitTextEntry = {
       body: z.string().describe('The text/HTML body of the submission'),
     },
   },
-  async handler({ course_id, assignment_id, body }) {
+  async handler({ course_id, assignment_id, body }, extra) {
+    const ctx = getCanvasContext(extra);
     const result = await canvas.post(
+      ctx,
       `/courses/${course_id}/assignments/${assignment_id}/submissions`,
       {
         submission: {
@@ -216,10 +253,12 @@ export const getCourseFiles = {
         .describe('Filter files by name (optional)'),
     },
   },
-  async handler({ course_id, search_term }) {
+  async handler({ course_id, search_term }, extra) {
+    const ctx = getCanvasContext(extra);
     const params = {};
     if (search_term) params.search_term = search_term;
     const files = await canvas.getAll(
+      ctx,
       `/courses/${course_id}/files`,
       params,
     );
@@ -254,7 +293,8 @@ export const sendMessage = {
         .describe('Optional course context for the message'),
     },
   },
-  async handler({ recipients, subject, body, course_id }) {
+  async handler({ recipients, subject, body, course_id }, extra) {
+    const ctx = getCanvasContext(extra);
     const payload = {
       recipients,
       subject,
@@ -264,7 +304,7 @@ export const sendMessage = {
     if (course_id) {
       payload.context_code = `course_${course_id}`;
     }
-    const result = await canvas.post('/conversations', payload);
+    const result = await canvas.post(ctx, '/conversations', payload);
     return text({
       id: Array.isArray(result) ? result[0]?.id : result.id,
       subject,

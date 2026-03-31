@@ -15,19 +15,20 @@ if (existsSync(envPath)) {
 const CANVAS_BASE_URL = process.env.CANVAS_BASE_URL;
 const CANVAS_API_TOKEN = process.env.CANVAS_API_TOKEN;
 
+// Warn instead of crashing — in remote multi-tenant mode these may not be set.
 if (!CANVAS_BASE_URL || !CANVAS_API_TOKEN) {
   console.error(
-    'Missing CANVAS_BASE_URL or CANVAS_API_TOKEN. ' +
-    'Copy .env.example to .env and fill in your credentials.'
+    'CANVAS_BASE_URL or CANVAS_API_TOKEN not set. ' +
+    'Stdio mode requires these in .env or environment. ' +
+    'Remote mode reads credentials from request headers instead.'
   );
-  process.exit(1);
 }
 
-// Strip trailing slash
-const baseUrl = CANVAS_BASE_URL.replace(/\/+$/, '');
+// Strip trailing slash if present
+const baseUrl = CANVAS_BASE_URL ? CANVAS_BASE_URL.replace(/\/+$/, '') : '';
 
 export const config = {
   baseUrl,
-  apiToken: CANVAS_API_TOKEN,
-  apiBase: `${baseUrl}/api/v1`,
+  apiToken: CANVAS_API_TOKEN ?? '',
+  apiBase: baseUrl ? `${baseUrl}/api/v1` : '',
 };
