@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import * as canvas from './canvas-api.js';
 import { resolveCredentials } from './credential-resolver.js';
+import { encrypt } from './crypto.js';
+import * as db from './db.js';
 
 // ---------------------------------------------------------------------------
 // Helper to return a text content block
@@ -28,6 +30,98 @@ async function getCanvasContext(extra) {
 // ---------------------------------------------------------------------------
 // Tool definitions: each export is { name, config, handler }
 // ---------------------------------------------------------------------------
+
+export const configure = {
+  name: 'canvas_configure',
+  config: {
+    description:
+      'Set up Canvas credentials for this session. Call this first if other Canvas tools return a "no credentials" error. ' +
+      'Provide your Canvas instance URL and API token, and all subsequent tool calls in this session will be authenticated automatically.',
+    inputSchema: {
+      canvas_base_url: z.string().describe('Your Canvas instance URL (e.g. https://canvas.school.edu)'),
+      canvas_api_token: z.string().describe('Your Canvas API access token (generate one at Canvas → Account → Settings → New Access Token)'),
+    },
+  },
+  async handler({ canvas_base_url, canvas_api_token }, extra) {
+    const baseUrl = String(canvas_base_url).replace(/\/+$/, '');
+
+    // Verify the token works before storing
+    let userData;
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/users/self`, {
+        headers: { Authorization: `Bearer ${canvas_api_token}` },
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        return error(`Token verification failed (${res.status}): ${body}. Check your URL and token.`);
+      }
+      userData = await res.json();
+    } catch (err) {
+      return error(`Could not reach Canvas at ${baseUrl}: ${err.message}`);
+    }
+
+    // Encrypt and store
+    const accessEnc = encrypt(canvas_api_token);
+    const credentialId = db.insertCredential({
+      canvasBaseUrl: baseUrl,
+      accessToken: accessEnc.ciphertext,
+      tokenIv: accessEnc.iv,
+      tokenTag: accessEnc.tag,
+      canvasUserId: userData.id ?? null,
+      canvasUserName: userData.name ?? null,
+      source: 'manual',
+    });
+
+    // Bind to current MCP session so subsequent calls resolve automatically
+    const sessionId = extra?.sessionId;
+    if (sessionId) {
+      db.bindSession(sessionId, credentialId);
+    }
+
+    return text({
+      status: 'connected',
+      credential_id: credentialId,
+      canvas_user: { id: userData.id, name: userData.name },
+      message: 'Canvas credentials stored and bound to this session. All other Canvas tools will now work automatically.',
+    });
+  },
+};
+
+export const authStatus = {
+  name: 'canvas_auth_status',
+  config: {
+    description:
+      'Check whether Canvas credentials are configured for this session. ' +
+      'Returns connection status and user info if connected, or setup instructions if not.',
+    inputSchema: {},
+  },
+  async handler(_args, extra) {
+    try {
+      const ctx = await getCanvasContext(extra);
+      // Token exists — verify it still works
+      const res = await fetch(`${ctx.apiBase}/users/self`, {
+        headers: { Authorization: `Bearer ${ctx.apiToken}` },
+      });
+      if (res.ok) {
+        const user = await res.json();
+        return text({
+          status: 'connected',
+          canvas_user: { id: user.id, name: user.name },
+          canvas_url: ctx.apiBase.replace('/api/v1', ''),
+        });
+      }
+      return text({
+        status: 'token_invalid',
+        message: 'A token is configured but Canvas rejected it. Run canvas_configure with a fresh token.',
+      });
+    } catch {
+      return text({
+        status: 'not_configured',
+        message: 'No Canvas credentials found. Use canvas_configure to connect your Canvas account.',
+      });
+    }
+  },
+};
 
 export const getCourses = {
   name: 'canvas_get_courses',
@@ -298,6 +392,8 @@ export const sendMessage = {
 
 // All tools as an array for easy registration
 export const allTools = [
+  configure,
+  authStatus,
   getCourses,
   getAssignments,
   getGrades,

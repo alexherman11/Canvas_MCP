@@ -50,8 +50,7 @@ export async function resolveCredentials(extra) {
   }
 
   throw new Error(
-    'No Canvas credentials found. Use /connect for OAuth, /configure to set a token, ' +
-    'provide x-canvas-api-token + x-canvas-base-url headers, or set environment variables.',
+    'No Canvas credentials found. Please call the canvas_configure tool with your Canvas URL and API token to get started.',
   );
 }
 
