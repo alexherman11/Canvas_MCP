@@ -10,3 +10,7 @@ Thumbs.db
 
 # Claude Desktop config (contains API tokens)
 claude_desktop_config.json
+
+# Credential database
+data/
+*.db

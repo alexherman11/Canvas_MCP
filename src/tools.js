@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import * as canvas from './canvas-api.js';
+import { resolveCredentials } from './credential-resolver.js';
 
 // ---------------------------------------------------------------------------
 // Helper to return a text content block
@@ -18,29 +19,10 @@ function error(msg) {
 
 /**
  * Build a Canvas API context from the MCP request.
- * In remote (HTTP) mode, credentials come from request headers.
- * In local (stdio) mode, they fall back to environment variables.
+ * Checks: headers → stored credentials (DB) → environment variables.
  */
-function getCanvasContext(extra) {
-  const headers = extra?.requestInfo?.headers;
-  const headerToken = headers?.['x-canvas-api-token'];
-  const headerBaseUrl = headers?.['x-canvas-base-url'];
-
-  if (headerToken && headerBaseUrl) {
-    const baseUrl = String(headerBaseUrl).replace(/\/+$/, '');
-    return { apiBase: `${baseUrl}/api/v1`, apiToken: String(headerToken) };
-  }
-
-  // Fall back to env vars (stdio / single-tenant mode)
-  const apiToken = process.env.CANVAS_API_TOKEN;
-  const baseUrl = process.env.CANVAS_BASE_URL?.replace(/\/+$/, '');
-  if (!apiToken || !baseUrl) {
-    throw new Error(
-      'No Canvas credentials found. Provide x-canvas-api-token and x-canvas-base-url headers, ' +
-      'or set CANVAS_BASE_URL and CANVAS_API_TOKEN environment variables.'
-    );
-  }
-  return { apiBase: `${baseUrl}/api/v1`, apiToken };
+async function getCanvasContext(extra) {
+  return resolveCredentials(extra);
 }
 
 // ---------------------------------------------------------------------------
@@ -55,7 +37,7 @@ export const getCourses = {
     inputSchema: {},
   },
   async handler(_args, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const courses = await canvas.getAll(ctx, '/courses', {
       enrollment_state: 'active',
       include: 'term',
@@ -87,7 +69,7 @@ export const getAssignments = {
     },
   },
   async handler({ course_id, include_submission }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const params = {};
     if (include_submission) params.include = 'submission';
     const assignments = await canvas.getAll(
@@ -121,7 +103,7 @@ export const getGrades = {
     },
   },
   async handler({ course_id }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const enrollments = await canvas.getAll(
       ctx,
       `/courses/${course_id}/enrollments`,
@@ -156,7 +138,7 @@ export const getAnnouncements = {
     },
   },
   async handler({ course_id, limit }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const announcements = await canvas.getAll(ctx, '/announcements', {
       'context_codes[]': `course_${course_id}`,
       per_page: limit,
@@ -186,7 +168,7 @@ export const getUpcomingDue = {
     },
   },
   async handler({ days }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const now = new Date();
     const cutoff = new Date(now.getTime() + days * 86400000);
 
@@ -221,7 +203,7 @@ export const submitTextEntry = {
     },
   },
   async handler({ course_id, assignment_id, body }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const result = await canvas.post(
       ctx,
       `/courses/${course_id}/assignments/${assignment_id}/submissions`,
@@ -254,7 +236,7 @@ export const getCourseFiles = {
     },
   },
   async handler({ course_id, search_term }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const params = {};
     if (search_term) params.search_term = search_term;
     const files = await canvas.getAll(
@@ -294,7 +276,7 @@ export const sendMessage = {
     },
   },
   async handler({ recipients, subject, body, course_id }, extra) {
-    const ctx = getCanvasContext(extra);
+    const ctx = await getCanvasContext(extra);
     const payload = {
       recipients,
       subject,

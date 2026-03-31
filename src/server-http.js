@@ -19,6 +19,8 @@ import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { allTools } from './tools.js';
+import { handleConnect, handleCallback, handleConfigure, handleAuthStatus } from './auth.js';
+import * as db from './db.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -38,6 +40,7 @@ app.use(cors({
     'mcp-protocol-version',
     'x-canvas-api-token',
     'x-canvas-base-url',
+    'x-credential-id',
   ],
   exposedHeaders: ['mcp-session-id'],
 }));
@@ -73,6 +76,21 @@ function createServer() {
 }
 
 // ---------------------------------------------------------------------------
+// Initialize credential database
+// ---------------------------------------------------------------------------
+
+db.getDb();
+
+// ---------------------------------------------------------------------------
+// Auth endpoints
+// ---------------------------------------------------------------------------
+
+app.get('/connect', handleConnect);
+app.get('/callback', handleCallback);
+app.post('/configure', handleConfigure);
+app.get('/auth/status/:credentialId', handleAuthStatus);
+
+// ---------------------------------------------------------------------------
 // MCP endpoint — POST (JSON-RPC requests), GET (SSE stream), DELETE (close)
 // ---------------------------------------------------------------------------
 
@@ -86,17 +104,27 @@ app.post('/mcp', async (req, res) => {
     return;
   }
 
+  // Capture credential ID from the initial request for session binding
+  const credentialId = req.headers['x-credential-id'];
+
   // New session — create server + transport
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (id) => {
       sessions.set(id, { transport, server });
+      // Bind this MCP session to the credential if provided
+      if (credentialId) {
+        try { db.bindSession(id, credentialId); } catch { /* non-fatal */ }
+      }
     },
   });
 
   transport.onclose = () => {
     const id = transport.sessionId;
-    if (id) sessions.delete(id);
+    if (id) {
+      sessions.delete(id);
+      try { db.unbindSession(id); } catch { /* non-fatal */ }
+    }
   };
 
   const server = createServer();

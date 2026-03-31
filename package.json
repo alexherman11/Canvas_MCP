@@ -9,11 +9,16 @@
     "start:local": "node src/index.js",
     "test": "node test.js"
   },
-  "keywords": ["mcp", "canvas", "lms"],
+  "keywords": [
+    "mcp",
+    "canvas",
+    "lms"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.2.1"
