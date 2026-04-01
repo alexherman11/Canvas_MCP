@@ -104,8 +104,9 @@ export const getCourses = {
   name: 'canvas_get_courses',
   config: {
     description:
-      'List all active classes and courses from Canvas LMS. Use this for questions about "my classes", "my courses", ' +
-      '"what classes am I in", school enrollment, or class schedules. Returns course id, name, code, and term.',
+      'List all active classes and courses from Canvas LMS. Works for both students and instructors. ' +
+      'Use this for "my classes", "my courses", "what courses do I teach", school enrollment, or class schedules. ' +
+      'Returns course id, name, code, term, and enrollment_type (student/teacher/ta/designer/observer).',
     inputSchema: {},
   },
   async handler(_args, extra) {
@@ -130,15 +131,16 @@ export const getAssignments = {
   name: 'canvas_get_assignments',
   config: {
     description:
-      'List assignments, homework, and classwork for a Canvas class/course. Use this for "what homework do I have", ' +
-      '"class assignments", or "coursework". Includes due dates, points, and submission status.',
+      'List assignments for a Canvas class/course. Works for both students and instructors. ' +
+      'Use this for "what homework do I have", "class assignments", "what assignments did I create", or "coursework". ' +
+      'Includes due dates, points, and submission status. Set include_submission=true (students only) to see your own submission state and score.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       include_submission: z
         .boolean()
         .optional()
-        .default(true)
-        .describe('Include current user submission info'),
+        .default(false)
+        .describe('Include current user\'s own submission info — only meaningful for students'),
     },
   },
   async handler({ course_id, include_submission }, extra) {
@@ -170,8 +172,10 @@ export const getGrades = {
   name: 'canvas_get_grades',
   config: {
     description:
-      'Get current grades and scores for a Canvas class/course. Use this for "how am I doing in class", "my grades", ' +
-      '"class grade", or "GPA". Returns assignment group grades and overall score.',
+      'Get the current user\'s own grades for a Canvas class/course — for STUDENTS only. ' +
+      'Use this for "how am I doing in class", "my grades", "my class grade", or "what is my score". ' +
+      'Returns assignment group grades and overall score for the logged-in student. ' +
+      'Instructors who want to view a student\'s grade should use canvas_get_student_grades instead.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
     },
@@ -342,8 +346,9 @@ export const sendMessage = {
   name: 'canvas_send_message',
   config: {
     description:
-      'Send a Canvas inbox message to a teacher, professor, classmate, or other Canvas user. ' +
-      'Use for "message my professor", "email my teacher", or "send a message on Canvas".',
+      'Send a Canvas inbox message to any Canvas user. Works for both students and instructors. ' +
+      'Use for "message my professor", "email my teacher", "message a student", "send a message on Canvas", ' +
+      'or "contact a classmate".',
     inputSchema: {
       recipients: z
         .array(z.string())

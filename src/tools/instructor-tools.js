@@ -848,6 +848,45 @@ export const setLatePolicy = {
   },
 };
 
+// ---- Student grade lookup (instructor) -------------------------------------
+
+export const getStudentGrades = {
+  name: 'canvas_get_student_grades',
+  config: {
+    description:
+      'Get a specific student\'s grades in a Canvas course — for INSTRUCTORS only. ' +
+      'Use for "what is this student\'s grade", "look up a student\'s score", or "student grade report". ' +
+      'Returns the student\'s current and final score/grade for the course. ' +
+      'Students viewing their own grade should use canvas_get_grades instead.',
+    inputSchema: {
+      course_id: z.number().describe('The Canvas course ID'),
+      student_id: z.number().describe('The Canvas user ID of the student'),
+    },
+  },
+  async handler({ course_id, student_id }, extra) {
+    const ctx = await getCanvasContext(extra);
+    const enrollments = await canvas.getAll(
+      ctx,
+      `/courses/${course_id}/enrollments`,
+      { user_id: student_id, include: 'current_points' },
+    );
+    const enrollment = enrollments[0];
+    if (!enrollment) return error('No enrollment found for this student in this course.');
+
+    const grades = enrollment.grades ?? {};
+    return text({
+      course_id,
+      student_id,
+      student_name: enrollment.user?.name ?? null,
+      current_score: grades.current_score,
+      current_grade: grades.current_grade,
+      final_score: grades.final_score,
+      final_grade: grades.final_grade,
+      current_points: enrollment.current_points ?? null,
+    });
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Export all instructor tools
 // ---------------------------------------------------------------------------
@@ -864,6 +903,7 @@ export const instructorTools = [
   postAnnouncement,
   getCourseAnalytics,
   listSubmissions,
+  getStudentGrades,
   // Tier 2
   createRubric,
   createQuiz,
