@@ -42,6 +42,17 @@ export async function resolveCredentials(extra) {
     }
   }
 
+  // 3b. No binding for this session — try the most recent stored credential.
+  //     This allows credentials to persist across conversations/sessions.
+  //     Auto-bind to current session so future calls resolve faster.
+  const latest = db.getLatestCredential();
+  if (latest) {
+    if (sessionId) {
+      try { db.bindSession(sessionId, latest.id); } catch { /* non-fatal */ }
+    }
+    return lookupCredential(latest.id);
+  }
+
   // 4. Environment variables
   const apiToken = process.env.CANVAS_API_TOKEN;
   const baseUrl = process.env.CANVAS_BASE_URL?.replace(/\/+$/, '');

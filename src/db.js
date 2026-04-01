@@ -134,6 +134,12 @@ export function updateTokens(id, { accessToken, tokenIv, tokenTag, refreshToken,
   });
 }
 
+/** Retrieve the most recently updated credential. Returns the row or undefined. */
+export function getLatestCredential() {
+  const db = getDb();
+  return db.prepare('SELECT * FROM credentials ORDER BY updated_at DESC, created_at DESC LIMIT 1').get();
+}
+
 /** Delete a credential and all its session bindings (cascade). */
 export function deleteCredential(id) {
   const db = getDb();
