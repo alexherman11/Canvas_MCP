@@ -12,7 +12,8 @@ export const createAssignment = {
   name: 'canvas_create_assignment',
   config: {
     description:
-      'Create a new assignment in a Canvas course. Returns the created assignment with its ID and URL.',
+      'Create a new assignment or homework in a Canvas class/course. Use for "create an assignment", ' +
+      '"add homework", or "make a new assignment for my class". Returns the created assignment with its ID and URL.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       name: z.string().describe('Assignment name/title'),
@@ -60,7 +61,8 @@ export const editAssignment = {
   name: 'canvas_edit_assignment',
   config: {
     description:
-      'Edit an existing assignment in a Canvas course. Only provide the fields you want to change. ' +
+      'Edit an existing assignment or homework in a Canvas class/course. Use for "update the assignment", ' +
+      '"change the due date", or "modify classwork". Only provide fields you want to change. ' +
       'Note: submission_types cannot be changed after students have submitted.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
@@ -106,7 +108,8 @@ export const gradeSubmission = {
   name: 'canvas_grade_submission',
   config: {
     description:
-      'Grade a single student submission. Supports points, percentages ("90%"), letter grades, ' +
+      'Grade a single student\'s submission in a Canvas class/course. Use for "grade this student", ' +
+      '"enter a grade", or "score a submission". Supports points, percentages ("90%"), letter grades, ' +
       '"pass"/"fail"/"complete"/"incomplete", or "excused".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
@@ -140,7 +143,8 @@ export const bulkGradeSubmissions = {
   name: 'canvas_bulk_grade_submissions',
   config: {
     description:
-      'Grade multiple student submissions at once. Processes asynchronously — polls for up to 30 seconds, ' +
+      'Grade multiple students at once for a Canvas class assignment. Use for "grade all submissions", ' +
+      '"bulk grade", or "enter grades for the class". Processes asynchronously — polls for up to 30 seconds, ' +
       'then returns progress URL if still running.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
@@ -204,7 +208,9 @@ export const bulkGradeSubmissions = {
 export const createPage = {
   name: 'canvas_create_page',
   config: {
-    description: 'Create a new wiki page in a Canvas course.',
+    description:
+      'Create a new content page in a Canvas class/course. Use for "create a class page", ' +
+      '"add course content", or "make a wiki page for my class".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       title: z.string().describe('Page title'),
@@ -238,7 +244,8 @@ export const createModule = {
   name: 'canvas_create_module',
   config: {
     description:
-      'Create a new module in a Canvas course. Modules organize content into sections.',
+      'Create a new module in a Canvas class/course. Modules organize class content into weekly or topical sections. ' +
+      'Use for "create a module", "organize my class content", or "add a new unit".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       name: z.string().describe('Module name'),
@@ -282,8 +289,8 @@ export const addModuleItem = {
   name: 'canvas_add_module_item',
   config: {
     description:
-      'Add an item to an existing module. Items can be assignments, pages, files, discussions, quizzes, ' +
-      'subheaders, external URLs, or external tools.',
+      'Add an item to an existing Canvas class module. Items can be assignments, pages, files, discussions, quizzes, ' +
+      'subheaders, external URLs, or external tools. Use for "add to module" or "put this in the class module".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       module_id: z.number().describe('The module ID to add the item to'),
@@ -339,7 +346,8 @@ export const postAnnouncement = {
   name: 'canvas_post_announcement',
   config: {
     description:
-      'Post an announcement to a Canvas course. Announcements are immediately visible to all students unless delayed.',
+      'Post an announcement to a Canvas class/course. Use for "announce to my class", "send a class announcement", ' +
+      'or "notify students". Announcements are immediately visible to all students unless delayed.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       title: z.string().describe('Announcement title'),
@@ -371,7 +379,8 @@ export const getCourseAnalytics = {
   name: 'canvas_get_course_analytics',
   config: {
     description:
-      'Get course analytics data. Types: "activity" (page views/participations over time), ' +
+      'Get analytics and statistics for a Canvas class/course. Use for "how is my class doing", "class analytics", ' +
+      '"student performance", or "class statistics". Types: "activity" (page views/participations), ' +
       '"assignments" (score stats per assignment), "students" (summary per student), ' +
       '"student_activity" (one student\'s activity), "student_assignments" (one student\'s assignment stats).',
     inputSchema: {
@@ -411,7 +420,8 @@ export const listSubmissions = {
   name: 'canvas_list_submissions',
   config: {
     description:
-      'List all student submissions for an assignment. Useful for reviewing or grading.',
+      'List all student submissions for a Canvas class assignment. Use for "who submitted", "show submissions", ' +
+      '"check what students turned in", or "review class submissions". Useful for reviewing or grading.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       assignment_id: z.number().describe('The assignment ID'),
@@ -465,7 +475,8 @@ export const createRubric = {
   name: 'canvas_create_rubric',
   config: {
     description:
-      'Create a grading rubric for a course. Optionally attach it to an assignment in one call.',
+      'Create a grading rubric for a Canvas class/course. Use for "make a rubric", "create grading criteria", ' +
+      'or "set up a rubric for an assignment". Optionally attach it to an assignment in one call.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       title: z.string().describe('Rubric title'),
@@ -536,7 +547,8 @@ export const createQuiz = {
   name: 'canvas_create_quiz',
   config: {
     description:
-      'Create a quiz in a Canvas course (Classic Quizzes). Add questions separately with canvas_add_quiz_question.',
+      'Create a quiz or test in a Canvas class/course (Classic Quizzes). Use for "make a quiz", "create a test", ' +
+      'or "set up an exam". Add questions separately with canvas_add_quiz_question.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       title: z.string().describe('Quiz title'),
@@ -579,7 +591,8 @@ export const addQuizQuestion = {
   name: 'canvas_add_quiz_question',
   config: {
     description:
-      'Add a question to an existing quiz (Classic Quizzes). For multiple choice, provide answers with weight=100 for correct and weight=0 for incorrect.',
+      'Add a question to an existing Canvas class quiz or test (Classic Quizzes). Use for "add a question", ' +
+      '"create quiz questions", or "add test questions". For multiple choice, provide answers with weight=100 for correct and weight=0 for incorrect.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       quiz_id: z.number().describe('The quiz ID'),
@@ -624,7 +637,9 @@ export const addQuizQuestion = {
 export const createDiscussion = {
   name: 'canvas_create_discussion',
   config: {
-    description: 'Create a discussion topic in a Canvas course.',
+    description:
+      'Create a discussion topic or forum in a Canvas class/course. Use for "start a class discussion", ' +
+      '"create a discussion board", or "post a discussion prompt".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       title: z.string().describe('Discussion title'),
@@ -667,7 +682,9 @@ export const createDiscussion = {
 export const createCalendarEvent = {
   name: 'canvas_create_calendar_event',
   config: {
-    description: 'Create a calendar event for a Canvas course.',
+    description:
+      'Create a calendar event for a Canvas class/course. Use for "add a class event", ' +
+      '"schedule something for my course", or "add to the class calendar".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID (event will appear on this course\'s calendar)'),
       title: z.string().describe('Event title'),
@@ -705,8 +722,8 @@ export const createAssignmentGroup = {
   name: 'canvas_create_assignment_group',
   config: {
     description:
-      'Create an assignment group (category) in a course. Groups organize assignments into categories ' +
-      'like "Homework", "Exams", "Quizzes". Use canvas_set_group_weights to enable weight-based grading.',
+      'Create an assignment group (grade category) in a Canvas class/course. Groups organize class assignments into ' +
+      'categories like "Homework", "Exams", "Quizzes". Use canvas_set_group_weights to enable weight-based grading.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       name: z.string().describe('Group name (e.g. "Homework", "Midterm Exams")'),
@@ -736,8 +753,9 @@ export const setGroupWeights = {
   name: 'canvas_set_group_weights',
   config: {
     description:
-      'Enable or disable assignment group weighting for a course. When enabled, each assignment group\'s ' +
-      'group_weight percentage determines its contribution to the final grade.',
+      'Enable or disable assignment group weighting for a Canvas class/course. Use for "set up weighted grades", ' +
+      '"enable grade weighting", or "weight my class categories". When enabled, each group\'s weight percentage ' +
+      'determines its contribution to the final class grade.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       enable_weighting: z
@@ -763,7 +781,8 @@ export const setLatePolicy = {
   name: 'canvas_set_late_policy',
   config: {
     description:
-      'Set the late submission and missing submission policies for a course. Each course has one policy — ' +
+      'Set the late submission and missing submission policies for a Canvas class/course. Use for "set late policy", ' +
+      '"penalize late homework", or "configure missing work deductions". Each course has one policy — ' +
       'this will create it if it doesn\'t exist, or update the existing one.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),

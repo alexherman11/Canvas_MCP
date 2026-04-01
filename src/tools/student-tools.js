@@ -104,7 +104,8 @@ export const getCourses = {
   name: 'canvas_get_courses',
   config: {
     description:
-      'List all active courses for the authenticated Canvas user. Returns course id, name, code, and term.',
+      'List all active classes and courses from Canvas LMS. Use this for questions about "my classes", "my courses", ' +
+      '"what classes am I in", school enrollment, or class schedules. Returns course id, name, code, and term.',
     inputSchema: {},
   },
   async handler(_args, extra) {
@@ -129,7 +130,8 @@ export const getAssignments = {
   name: 'canvas_get_assignments',
   config: {
     description:
-      'List assignments for a Canvas course. Includes due dates, points, and submission status.',
+      'List assignments, homework, and classwork for a Canvas class/course. Use this for "what homework do I have", ' +
+      '"class assignments", or "coursework". Includes due dates, points, and submission status.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       include_submission: z
@@ -168,7 +170,8 @@ export const getGrades = {
   name: 'canvas_get_grades',
   config: {
     description:
-      'Get current grades for a Canvas course. Returns assignment group grades and overall score.',
+      'Get current grades and scores for a Canvas class/course. Use this for "how am I doing in class", "my grades", ' +
+      '"class grade", or "GPA". Returns assignment group grades and overall score.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
     },
@@ -198,7 +201,9 @@ export const getGrades = {
 export const getAnnouncements = {
   name: 'canvas_get_announcements',
   config: {
-    description: 'Fetch recent announcements for a Canvas course.',
+    description:
+      'Fetch recent announcements and updates for a Canvas class/course. Use for "class announcements", ' +
+      '"what did my teacher/professor post", or "class updates".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       limit: z
@@ -229,7 +234,8 @@ export const getUpcomingDue = {
   name: 'canvas_get_upcoming_due',
   config: {
     description:
-      'Get assignments due in the next N days across all courses.',
+      'Get upcoming homework and assignments due soon across all classes/courses from Canvas. ' +
+      'Use for "what\'s due", "upcoming homework", "deadlines", or "what do I need to turn in".',
     inputSchema: {
       days: z
         .number()
@@ -266,7 +272,8 @@ export const submitTextEntry = {
   name: 'canvas_submit_text_entry',
   config: {
     description:
-      'Submit a text-based assignment on Canvas. Only works for assignments that accept online_text_entry.',
+      'Submit a text-based assignment or homework on Canvas. Use for "turn in my assignment", "submit homework", ' +
+      'or "submit classwork". Only works for assignments that accept online_text_entry.',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       assignment_id: z.number().describe('The assignment ID'),
@@ -297,7 +304,9 @@ export const submitTextEntry = {
 export const getCourseFiles = {
   name: 'canvas_get_course_files',
   config: {
-    description: 'List files available in a Canvas course.',
+    description:
+      'List files, documents, and materials available in a Canvas class/course. ' +
+      'Use for "class files", "course materials", "lecture slides", or "class documents".',
     inputSchema: {
       course_id: z.number().describe('The Canvas course ID'),
       search_term: z
@@ -333,7 +342,8 @@ export const sendMessage = {
   name: 'canvas_send_message',
   config: {
     description:
-      'Send a Canvas inbox message (conversation) to one or more users.',
+      'Send a Canvas inbox message to a teacher, professor, classmate, or other Canvas user. ' +
+      'Use for "message my professor", "email my teacher", or "send a message on Canvas".',
     inputSchema: {
       recipients: z
         .array(z.string())
