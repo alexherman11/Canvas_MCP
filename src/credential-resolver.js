@@ -42,15 +42,18 @@ export async function resolveCredentials(extra) {
     }
   }
 
-  // 3b. No binding for this session — try the most recent stored credential.
-  //     This allows credentials to persist across conversations/sessions.
-  //     Auto-bind to current session so future calls resolve faster.
-  const latest = db.getLatestCredential();
-  if (latest) {
-    if (sessionId) {
-      try { db.bindSession(sessionId, latest.id); } catch { /* non-fatal */ }
+  // 3b. Stdio-only fallback: use the most recent stored credential.
+  //     SECURITY: In remote (HTTP) mode, skip this — each client must identify
+  //     themselves via x-credential-id header, session binding, or canvas_resume_session.
+  //     extra.requestInfo is set by StreamableHTTPServerTransport but absent in stdio.
+  if (!extra?.requestInfo) {
+    const latest = db.getLatestCredential();
+    if (latest) {
+      if (sessionId) {
+        try { db.bindSession(sessionId, latest.id); } catch { /* non-fatal */ }
+      }
+      return lookupCredential(latest.id);
     }
-    return lookupCredential(latest.id);
   }
 
   // 4. Environment variables
@@ -61,7 +64,10 @@ export async function resolveCredentials(extra) {
   }
 
   throw new Error(
-    'No Canvas credentials found. Please call the canvas_configure tool with your Canvas URL and API token to get started.',
+    'No Canvas credentials found. ' +
+    'If you have a Canvas credential_id saved in memory from a prior conversation, ' +
+    'call canvas_resume_session with it. ' +
+    'Otherwise, ask the user for their Canvas URL and API token, then call canvas_configure.',
   );
 }
 

@@ -59,8 +59,77 @@ export const configure = {
       status: 'connected',
       credential_id: credentialId,
       canvas_user: { id: userData.id, name: userData.name },
-      message: 'Canvas credentials stored and bound to this session. All other Canvas tools will now work automatically.',
+      message:
+        'Canvas credentials stored and bound to this session. All other Canvas tools will now work automatically. ' +
+        'IMPORTANT: Please remember the credential_id value above. ' +
+        'In future conversations, you can call canvas_resume_session with this credential_id ' +
+        'to reconnect without asking the user for their token again.',
     });
+  },
+};
+
+export const resumeSession = {
+  name: 'canvas_resume_session',
+  config: {
+    description:
+      'Resume a previously configured Canvas connection using a saved credential ID. ' +
+      'If you have a Canvas credential_id stored in memory from a prior conversation, call this tool with it ' +
+      'at the start of a new conversation to re-authenticate without asking the user for their token again.',
+    inputSchema: {
+      credential_id: z.string().describe('The credential_id returned by a previous canvas_configure call'),
+    },
+  },
+  async handler({ credential_id }, extra) {
+    const { decrypt } = await import('../crypto.js');
+
+    const cred = db.getCredential(credential_id);
+    if (!cred) {
+      return error(
+        'Credential not found. The saved credential_id may be invalid or the server database was reset. ' +
+        'Please ask the user for their Canvas URL and API token, then call canvas_configure.',
+      );
+    }
+
+    // Decrypt and verify the token still works
+    let apiToken;
+    try {
+      apiToken = decrypt(cred.access_token, cred.token_iv, cred.token_tag);
+    } catch {
+      return error(
+        'Failed to decrypt stored credentials. The server encryption key may have changed. ' +
+        'Please ask the user for their Canvas URL and API token, then call canvas_configure.',
+      );
+    }
+
+    const baseUrl = cred.canvas_base_url.replace(/\/+$/, '');
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/users/self`, {
+        headers: { Authorization: `Bearer ${apiToken}` },
+      });
+      if (!res.ok) {
+        return error(
+          'The stored Canvas token is no longer valid (Canvas rejected it). ' +
+          'Please ask the user for a fresh API token, then call canvas_configure.',
+        );
+      }
+      const userData = await res.json();
+
+      // Bind to current MCP session
+      const sessionId = extra?.sessionId;
+      if (sessionId) {
+        db.bindSession(sessionId, credential_id);
+      }
+
+      return text({
+        status: 'connected',
+        credential_id,
+        canvas_user: { id: userData.id, name: userData.name },
+        canvas_url: baseUrl,
+        message: 'Session resumed successfully. All Canvas tools will now work automatically.',
+      });
+    } catch (err) {
+      return error(`Could not reach Canvas at ${baseUrl}: ${err.message}`);
+    }
   },
 };
 
@@ -384,6 +453,7 @@ export const sendMessage = {
 
 export const studentTools = [
   configure,
+  resumeSession,
   authStatus,
   getCourses,
   getAssignments,
